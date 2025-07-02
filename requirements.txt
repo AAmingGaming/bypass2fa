@@ -1,0 +1,4 @@
+pyotp
+playwright
+beautifulsoup4
+python-dotenv
