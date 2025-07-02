@@ -6,8 +6,10 @@ from dotenv import load_dotenv
 from pyotp import TOTP
 from playwright.sync_api import sync_playwright, Page, Error
 
+# Set to False for Chromium based brower, True for Firefox browser
+USE_FIREFOX = False
 
-# the url where auto-login occurs, ** means wildcard
+# The url where auto-login occurs, ** means wildcard
 LOGIN_URL = "https://login.microsoftonline.com/**"
 USER_PLACEHOLDER = "username@OX.AC.UK"
 PASS_PLACEHOLDER = "Password"
@@ -81,16 +83,15 @@ def no_2fa_browser(username: str, password: str, totp: TOTP, firefox = False) ->
         else:
             browser = p.chromium.launch(headless=False)
         
-        def new_watcher(new_page):
-            print("New page!")
-            watcher = Thread(target=page_watcher, args=(new_page, username, password, totp))
-            watcher.start()
+        # def new_watcher(new_page):
+        #     print("New page!")
+        #     watcher = Thread(target=page_watcher, args=(new_page, username, password, totp))
+        #     watcher.start()
         
         context = browser.new_context()
-        context.on("page", new_watcher)
-        #context.new_page()
-        
-        input("Press enter to Close!")
+        #context.on("page", new_watcher)
+        page = context.new_page()
+        page_watcher(page, username, password, totp)
 
 
 def main():
@@ -111,7 +112,7 @@ def main():
     #termimal_info.start()
     
     # run browser session
-    no_2fa_browser(user_value, pass_value, totp, firefox=True)
+    no_2fa_browser(user_value, pass_value, totp, firefox=USE_FIREFOX)
             
     
 if __name__ == "__main__":
