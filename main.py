@@ -1,5 +1,5 @@
-from time import time, sleep
-from threading import Thread
+from time import time
+from math import ceil
 import os
 import asyncio
 
@@ -21,7 +21,7 @@ def display_otp(totp: TOTP) -> str:
     current_otp = totp.now()
     next_otp = totp.generate_otp(int(time())//30+1)
     next_otp_time = 30.0 - time() % 30.0
-    info = f"{next_otp_time:2.0f}| Current: {current_otp} -> Next: {next_otp}"
+    info = f"{ceil(next_otp_time):2.0f}| Current: {current_otp} -> Next: {next_otp}"
     return info
 
 async def terminal_otp(totp: TOTP) -> None:
