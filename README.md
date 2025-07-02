@@ -2,6 +2,7 @@
 Used to bypass an institution's microsoft SSO and 2FA requirments by automatically inputting the user's credentials in a custom browser session.
 
 Note some services like google will requre a CAPTCHA to be completed as it recognises the browser as an automation.
+Currently only Oxford SSO is supported and assumes MicrosoftAuthenticator 2FA is being used.
 
 ## Setup
 ### Python Packages
