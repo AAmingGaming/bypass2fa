@@ -48,3 +48,18 @@ playwright install
     - Set 'LOGIN_USER' to be your email / username used to login 
     - Set 'LOGIN_PASS' to be your password used to login
     - Set '2FA_SECRET' to be the secret key generated in the previous section.
+
+## Run
+Execute in the terminal
+```shell
+python main.py
+```
+
+### Example Terminal Output
+In the terminal there will be a persistant output showing the time before the OTP code expires, the current OTP code and the next OTP code.
+```
+  11| Current: 261625 -> Next: 115230
+```
+- `11` is how many seconds before the current code expires
+- `261625` is the current code to use as a OTP
+- `115230` is the next code which will be active after the current one expires
