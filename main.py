@@ -109,7 +109,7 @@ def main():
     
     # start an updating thread in the terminal for displaying currnet otp
     termimal_info = Thread(target=terminal_otp, args=(totp,))
-    #termimal_info.start()
+    termimal_info.start()
     
     # run browser session
     no_2fa_browser(user_value, pass_value, totp, firefox=USE_FIREFOX)
