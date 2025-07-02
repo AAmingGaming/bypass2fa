@@ -1,6 +1,8 @@
 # bypass2fa
 Used to bypass an institution's microsoft SSO and 2FA requirments by automatically inputting the user's credentials in a custom browser session.
 
+Note some services like google will requre a CAPTCHA to be completed as it recognises the browser as an automation.
+
 ## Setup
 ### Python Packages
 Install required packages with:
