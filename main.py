@@ -1,10 +1,11 @@
+from time import time
+from math import ceil
 import os
-from time import time, sleep
-from threading import Thread
+import asyncio
 
 from dotenv import load_dotenv
 from pyotp import TOTP
-from playwright.sync_api import sync_playwright, Page, Error
+from playwright.async_api import async_playwright, Page, Error
 
 # Set to False for Chromium based brower, True for Firefox browser
 USE_FIREFOX = False
@@ -20,24 +21,24 @@ def display_otp(totp: TOTP) -> str:
     current_otp = totp.now()
     next_otp = totp.generate_otp(int(time())//30+1)
     next_otp_time = 30.0 - time() % 30.0
-    info = f"{next_otp_time:2.0f}| Current: {current_otp} -> Next: {next_otp}"
+    info = f"{ceil(next_otp_time):2.0f}| Current: {current_otp} -> Next: {next_otp}"
     return info
 
-def terminal_otp(totp: TOTP) -> None:
+async def terminal_otp(totp: TOTP) -> None:
     while True:
         info = display_otp(totp)
         print(info, end="\t\r")
-        sleep(1)
+        await asyncio.sleep(1)
         
         
-def page_watcher(page: Page, username: str, password: str, totp: TOTP):
+async def page_watcher(page: Page, username: str, password: str, totp: TOTP):
         while True:
             if page.is_closed():
                 return
             
             try:
                 # wait for loaded login page
-                page.wait_for_url(LOGIN_URL, wait_until="load", timeout=0)
+                await page.wait_for_url(LOGIN_URL, wait_until="load", timeout=0)
             except Error as e:
                 if "Target page, context or browser has been closed" not in str(e):
                     # raise e
@@ -48,53 +49,55 @@ def page_watcher(page: Page, username: str, password: str, totp: TOTP):
             
             try:
                 # input email/username
-                page.fill(f'input[placeholder="{USER_PLACEHOLDER}"]', username)
-                page.click("input[type='submit']")  # might need changing for other login pages
+                await page.fill(f'input[placeholder="{USER_PLACEHOLDER}"]', username)
+                await page.click("input[type='submit']")  # might need changing for other login pages
             except Error:
                 # Presume error arrises from auto-signin
                 return
             
             # input password
-            page.fill(f'input[placeholder="{PASS_PLACEHOLDER}"]', password)
-            page.click("input[type='submit']")  # might need changing for other login pages
+            await page.fill(f'input[placeholder="{PASS_PLACEHOLDER}"]', password)
+            await page.click("input[type='submit']")  # might need changing for other login pages
             
             #TODO what if phone otp is default
             
             # Wait for alt-2fa to exist in the page
             other_2fa = page.locator("a#signInAnotherWay")
-            other_2fa.wait_for(timeout=5000)
-            other_2fa.click()
+            await other_2fa.wait_for(timeout=5000)
+            await other_2fa.click()
                 
             # Wait for correct auth method to show
             phone_otp = page.locator('div[data-value="PhoneAppOTP"]')
-            phone_otp.wait_for(timeout=5000)
-            phone_otp.click()
+            await phone_otp.wait_for(timeout=5000)
+            await phone_otp.click()
                 
             # Wait for code-input to apear
             code_input = page.locator(f'input[placeholder="{CODE_PLACEHOLDER}"]')
-            code_input.wait_for(timeout=5000)
-            code_input.fill(totp.now())
-            page.click("input[type='submit']")  # might need changing for other login pages
+            await code_input.wait_for(timeout=5000)
+            await code_input.fill(totp.now())
+            await page.click("input[type='submit']")  # might need changing for other login pages
         
-def no_2fa_browser(username: str, password: str, totp: TOTP, firefox = False) -> None:
-    with sync_playwright() as p:
+async def no_2fa_browser(username: str, password: str, totp: TOTP, firefox = False) -> None:
+    async with async_playwright() as p:
         if firefox:
-            browser = p.firefox.launch(headless=False)
+            device = p.devices["Desktop Chrome"]
+            browser = await p.firefox.launch(headless=False)
         else:
-            browser = p.chromium.launch(headless=False)
+            device = p.devices["Desktop Firefox"]
+            browser = await p.chromium.launch(headless=False)
         
-        # def new_watcher(new_page):
-        #     print("New page!")
-        #     watcher = Thread(target=page_watcher, args=(new_page, username, password, totp))
-        #     watcher.start()
+        def new_watcher(new_page):
+            asyncio.create_task(page_watcher(new_page, username, password, totp))
         
-        context = browser.new_context()
-        #context.on("page", new_watcher)
-        page = context.new_page()
-        page_watcher(page, username, password, totp)
+        context = await browser.new_context(**device)
+        context.on("page", new_watcher)
+        page = await context.new_page()
+        #page_watcher(page, username, password, totp)
+        await asyncio.sleep(10000)
+        await browser.close()
 
 
-def main():
+async def main():
     # Loads the .env file and ensures expected values exist
     load_dotenv()
     try:
@@ -108,12 +111,13 @@ def main():
     totp = TOTP(secret_value)
     
     # start an updating thread in the terminal for displaying currnet otp
-    termimal_info = Thread(target=terminal_otp, args=(totp,))
-    termimal_info.start()
+    info_coroutine = terminal_otp(totp)
     
     # run browser session
-    no_2fa_browser(user_value, pass_value, totp, firefox=USE_FIREFOX)
+    browser_coroutine = no_2fa_browser(user_value, pass_value, totp, firefox=USE_FIREFOX)
+    
+    await asyncio.gather(browser_coroutine, info_coroutine)
             
     
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
