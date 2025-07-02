@@ -8,7 +8,7 @@ from pyotp import TOTP
 from playwright.async_api import async_playwright, Page, Error
 
 # Set to False for Chromium based brower, True for Firefox browser
-USE_FIREFOX = False
+USE_FIREFOX = True
 
 # The url where auto-login occurs, ** means wildcard
 LOGIN_URL = "https://login.microsoftonline.com/**"
@@ -60,22 +60,26 @@ async def page_watcher(page: Page, username: str, password: str, totp: TOTP):
             await page.click("input[type='submit']")  # might need changing for other login pages
             
             #TODO what if phone otp is default
-            
-            # Wait for alt-2fa to exist in the page
-            other_2fa = page.locator("a#signInAnotherWay")
-            await other_2fa.wait_for(timeout=5000)
-            await other_2fa.click()
-                
-            # Wait for correct auth method to show
-            phone_otp = page.locator('div[data-value="PhoneAppOTP"]')
-            await phone_otp.wait_for(timeout=5000)
-            await phone_otp.click()
-                
-            # Wait for code-input to apear
             code_input = page.locator(f'input[placeholder="{CODE_PLACEHOLDER}"]')
-            await code_input.wait_for(timeout=5000)
-            await code_input.fill(totp.now())
-            await page.click("input[type='submit']")  # might need changing for other login pages
+            try:
+                await code_input.wait_for(timeout=100)
+            except:
+                # Wait for alt-2fa to exist in the page
+                other_2fa = page.locator("a#signInAnotherWay")
+                await other_2fa.wait_for(timeout=100)
+                await other_2fa.click()
+                    
+                # Wait for correct auth method to show
+                phone_otp = page.locator('div[data-value="PhoneAppOTP"]')
+                await phone_otp.wait_for(timeout=100)
+                await phone_otp.click()
+                    
+                # Wait for code-input to apear
+                await code_input.wait_for(timeout=100)
+            finally:
+                await code_input.fill(totp.now())
+                await page.click("input[type='submit']")  # might need changing for other login pages
+            
         
 async def no_2fa_browser(username: str, password: str, totp: TOTP, firefox = False) -> None:
     async with async_playwright() as p:
