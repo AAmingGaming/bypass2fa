@@ -70,9 +70,6 @@ async def page_watcher(page: Page, username: str, password: str, totp: TOTP):
                 # Tries with finding the Code input directly
                 code_input = page.locator(f'input[placeholder="{CODE_PLACEHOLDER}"]')
                 await code_input.wait_for(timeout=ELEMENT_TIMEOUTS)
-                print("Found!")
-                await code_input.fill(totp.now())
-                await page.click("input[type='submit']")  # might need changing for other login pages
             except:
                 # Couldnt find Code input in time so it mustn't be default
                 
@@ -91,6 +88,7 @@ async def page_watcher(page: Page, username: str, password: str, totp: TOTP):
                 # Wait for code-input to apear
                 code_input = page.locator(f'input[placeholder="{CODE_PLACEHOLDER}"]')
                 await code_input.wait_for(timeout=ELEMENT_TIMEOUTS)
+            finally:
                 await code_input.fill(totp.now())
                 await page.click("input[type='submit']")  # might need changing for other login pages
             
