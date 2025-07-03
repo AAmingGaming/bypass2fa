@@ -1,7 +1,9 @@
 # bypass2fa
-Used to bypass an institution's microsoft SSO and 2FA requirments by automatically inputting the user's credentials in a custom browser session.
+Used to bypass an institution's microsoft SSO and 2FA requirments by automatically inputting the user's credentials in a custom browser session. This browser is ran entirely locally as part of the `playwright` package for interaction, this means all the sensitive credentials never leave the device. 
 
-Note some services like google will requre a CAPTCHA to be completed as it recognises the browser as an automation.
+Note: Storing your 2FA secret long like this is EXTREAMLY insecure since its stored as plain-text.
+
+Note: some services like google will requre a CAPTCHA to be completed as it recognises the browser as an automation.
 Currently only Oxford SSO is supported and doesn't work if mobile Passkeys are being used.
 
 ## Setup
@@ -34,7 +36,7 @@ playwright install
 
 4. Run `python3 main.py` in your terminal
 
-5. Ignore the opened browser window (Don't close it for now)
+5. Ignore/Close the opened browser window (Don't close it for now)
 
 6. Copy the "Current" value ouput in the terminal and put it into the still open settings window where it says "Enter Code".
 

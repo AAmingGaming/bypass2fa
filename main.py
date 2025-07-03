@@ -16,6 +16,12 @@ USER_PLACEHOLDER = "username@OX.AC.UK"
 PASS_PLACEHOLDER = "Password"
 CODE_PLACEHOLDER = "Code"
 
+# How long to wait (ms) for an expected element to appear before giving up
+# - (looks for Code input by default, if it cant find it in this time, paths to it)
+ELEMENT_TIMEOUTS = 1000
+# Delay (ms) for allowing the alternate login options to populate before continuing
+OPTIONS_DELAY = 500
+
 
 def display_otp(totp: TOTP) -> str:
     current_otp = totp.now()
@@ -59,24 +65,32 @@ async def page_watcher(page: Page, username: str, password: str, totp: TOTP):
             await page.fill(f'input[placeholder="{PASS_PLACEHOLDER}"]', password)
             await page.click("input[type='submit']")  # might need changing for other login pages
             
-            #TODO what if phone otp is default
-            code_input = page.locator(f'input[placeholder="{CODE_PLACEHOLDER}"]')
+            
             try:
-                await code_input.wait_for(timeout=100)
+                # Tries with finding the Code input directly
+                code_input = page.locator(f'input[placeholder="{CODE_PLACEHOLDER}"]')
+                await code_input.wait_for(timeout=ELEMENT_TIMEOUTS)
+                print("Found!")
+                await code_input.fill(totp.now())
+                await page.click("input[type='submit']")  # might need changing for other login pages
             except:
+                # Couldnt find Code input in time so it mustn't be default
+                
                 # Wait for alt-2fa to exist in the page
                 other_2fa = page.locator("a#signInAnotherWay")
-                await other_2fa.wait_for(timeout=100)
+                await other_2fa.wait_for(timeout=ELEMENT_TIMEOUTS)
                 await other_2fa.click()
+                
+                await asyncio.sleep(OPTIONS_DELAY/1000) # Need everything to finish loading
                     
                 # Wait for correct auth method to show
                 phone_otp = page.locator('div[data-value="PhoneAppOTP"]')
-                await phone_otp.wait_for(timeout=100)
+                await phone_otp.wait_for(timeout=ELEMENT_TIMEOUTS)
                 await phone_otp.click()
                     
                 # Wait for code-input to apear
-                await code_input.wait_for(timeout=100)
-            finally:
+                code_input = page.locator(f'input[placeholder="{CODE_PLACEHOLDER}"]')
+                await code_input.wait_for(timeout=ELEMENT_TIMEOUTS)
                 await code_input.fill(totp.now())
                 await page.click("input[type='submit']")  # might need changing for other login pages
             
